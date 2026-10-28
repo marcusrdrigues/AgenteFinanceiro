@@ -1,0 +1,108 @@
+server:
+  port: 8080
+  address: 127.0.0.1                    # FR-003: só conexões da própria máquina (sem autenticação nesta aula)
+
+spring:
+  application:
+    name: agente-financeiro
+  datasource:
+    url: ${POSTGRES_URL:jdbc:postgresql://127.0.0.1:5432/financecorp}
+    username: agente_leitura            # papel só leitura (constituição VII)
+    password: ${POSTGRES_APP_PASSWORD:}
+  flyway:
+    user: agente_migracao               # dono dos schemas; a aplicação nunca usa este papel
+    password: ${POSTGRES_MIGRACAO_PASSWORD:}
+    schemas: financeiro,conhecimento    # histórico do Flyway fica em "financeiro", não em "public"
+  mvc:
+    problemdetails:
+      enabled: true
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true  # corpo com campo extra é 400 (contrato: additionalProperties false)
+  ai:
+    vectorstore:
+      pgvector:
+        initialize-schema: false          # esquema vem da migração V2, nunca da aplicação
+        remove-existing-vector-store-table: false
+        schema-validation: false          # a validação do PgVectorStore só roda junto do initialize-schema
+        schema-name: conhecimento
+        table-name: vector_store
+        index-type: HNSW
+        distance-type: COSINE_DISTANCE
+        dimensions: 1536                  # igual à coluna vector(1536) e ao embedding configurado
+    openai:
+      api-key: ${OPENAI_API_KEY:}       # só variável de ambiente; ausência é barrada por VerificadorConfiguracaoIa
+      timeout: 20s                      # decisão explícita, nunca o padrão por omissão (research D9)
+      max-retries: 0                    # retry num único ponto, na aplicação (research D14)
+      chat:
+        model: ${OPENAI_CHAT_MODEL:}    # identificador escolhido pelo eval; sem padrão no código (research D9)
+        temperature: 0.0                # fidelidade aos números e trechos, sem criatividade
+      embedding:
+        model: ${OPENAI_EMBEDDING_MODEL:text-embedding-3-small}
+        dimensions: 1536                # igual à coluna vector(1536); mudar exige reindexar
+    chat:
+      # Nomes conferidos no metadata do spring-ai-autoconfigure 2.0.2: prompt e resposta não vão
+      # para as observações (constituição IX).
+      observations:
+        log-prompt: false
+        log-completion: false
+      client:
+        observations:
+          log-prompt: false
+          log-completion: false
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+  paths-to-match: /api/**
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never               # sem detalhe interno na resposta
+
+logging:
+  file:
+    name: logs/agente-financeiro.log
+  logback:
+    rollingpolicy:
+      max-history: 90                   # FR-038: 90 dias de retenção
+
+financeiro:
+  ia:
+    tentativas-validacao: 2
+    tentativas-transitorias: 2
+    backoff-inicial: 500ms
+    multiplicador-backoff: 2
+    tempo-total: 25s
+    tempo-total-analise: 30s
+    tokens-classificador: 200           # teto de custo: a classificação é um JSON curto
+    tokens-redacao: 600                 # teto de custo por resposta redigida
+    versao-prompts:
+      classificar: v1
+      responder-documental: v1
+  rag:
+    top-k: 4                            # inicial; calibrado pelo eval de recuperação (research D6)
+    limiar-similaridade: 0.55           # inicial; calibrado pelo eval de recuperação
+    tamanho-maximo-trecho: 1200
+    sobreposicao: 200
+    tamanho-minimo-trecho: 100
+    maximo-trechos-por-documento: 200
+    tamanho-maximo-contexto: 4800       # top-k × tamanho do trecho; acima disso saem os de menor similaridade
+    lote-gravacao: 50                   # trechos por chamada de embedding na ingestão
+  ingestao:
+    pasta: documentos                   # relativa ao diretório do módulo agente-financeiro
+  limites:
+    tamanho-maximo-pergunta: 1000
+    requisicoes-por-minuto-por-conversa: 20
+    requisicoes-por-minuto-total: 60
+    chamadas-ferramenta-por-requisicao: 4
+  risco:
+    despesa-sobre-receita-maxima: 0.90
+    queda-receita-minima: 0.85

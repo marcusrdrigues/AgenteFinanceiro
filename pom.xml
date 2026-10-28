@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- Boot 4.1.2 é a versão que o próprio starter do Spring AI 2.0.2 declara (research D1). -->
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>4.1.2</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>br.com.financecorp</groupId>
+    <artifactId>agente-financeiro-raiz</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <name>AgenteFinanceiro (raiz)</name>
+    <description>Agregador e gestão de versões dos agentes da FinanceCorp (aula de arquitetura de IA)</description>
+
+    <modules>
+        <module>agente-financeiro</module>
+        <module>agente-riscos</module>
+    </modules>
+
+    <properties>
+        <java.version>21</java.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <spring-ai.version>2.0.2</spring-ai.version>
+        <a2a-sdk.version>1.4.0.Final</a2a-sdk.version>
+        <spring-ai-a2a.version>0.4.0</spring-ai-a2a.version>
+        <resilience4j.version>2.4.0</resilience4j.version>
+        <wiremock.version>3.13.2</wiremock.version>
+        <archunit.version>1.5.1</archunit.version>
+        <!-- springdoc 3.2.0 é compilado contra o Boot 4.1.2 (aprovado em 2026-10-27). -->
+        <springdoc.version>3.2.0</springdoc.version>
+        <swagger-core.version>2.2.55</swagger-core.version>
+        <!-- Eval chama o modelo real: fica fora do build padrão e roda só com -Peval. -->
+        <testes.grupos.excluidos>eval</testes.grupos.excluidos>
+        <testes.grupos/>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.ai</groupId>
+                <artifactId>spring-ai-bom</artifactId>
+                <version>${spring-ai.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <!--
+                O a2a-java-sdk-bom 1.4.0.Final NÃO é importado: ele gerencia okhttp, junit-jupiter-params e
+                weld-se-core com <scope>test</scope>, o que rebaixava o okhttp exigido em runtime pelo SDK da
+                OpenAI (o jar não subia: NoClassDefFoundError okhttp3/Callback). Os artefatos A2A usam
+                ${a2a-sdk.version} explicitamente, a partir do incremento 6.
+            -->
+            <dependency>
+                <groupId>org.a2aproject.sdk</groupId>
+                <artifactId>a2a-java-sdk-client</artifactId>
+                <version>${a2a-sdk.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springaicommunity</groupId>
+                <artifactId>spring-ai-a2a-server-autoconfigure</artifactId>
+                <version>${spring-ai-a2a.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.resilience4j</groupId>
+                <artifactId>resilience4j-spring-boot4</artifactId>
+                <version>${resilience4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.wiremock</groupId>
+                <artifactId>wiremock-standalone</artifactId>
+                <version>${wiremock.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.tngtech.archunit</groupId>
+                <artifactId>archunit</artifactId>
+                <version>${archunit.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+                <version>${springdoc.version}</version>
+            </dependency>
+            <!--
+                Alinhamento de transitivas: o SDK da OpenAI traz swagger-annotations 2.2.31 e o
+                spring-ai-client-chat traz swagger-annotations-jakarta 2.2.38; os dois têm o mesmo pacote
+                e o springdoc 3.2.0 (swagger-core 2.2.55) quebra com /v3/api-docs em 500
+                (NoSuchMethodError Schema.$dynamicRef). Ficam ambos na versão do swagger-core do springdoc.
+            -->
+            <dependency>
+                <groupId>io.swagger.core.v3</groupId>
+                <artifactId>swagger-annotations</artifactId>
+                <version>${swagger-core.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.swagger.core.v3</groupId>
+                <artifactId>swagger-annotations-jakarta</artifactId>
+                <version>${swagger-core.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <configuration>
+                        <includes>
+                            <include>**/*Test.java</include>
+                        </includes>
+                        <groups>${testes.grupos}</groups>
+                        <excludedGroups>${testes.grupos.excluidos}</excludedGroups>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-failsafe-plugin</artifactId>
+                    <configuration>
+                        <includes>
+                            <include>**/*IT.java</include>
+                        </includes>
+                        <groups>${testes.grupos}</groups>
+                        <excludedGroups>${testes.grupos.excluidos}</excludedGroups>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <goals>
+                                <goal>integration-test</goal>
+                                <goal>verify</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <profile>
+            <id>eval</id>
+            <properties>
+                <testes.grupos>eval</testes.grupos>
+                <testes.grupos.excluidos/>
+            </properties>
+        </profile>
+    </profiles>
+</project>

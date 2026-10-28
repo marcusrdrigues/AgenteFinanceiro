@@ -1,0 +1,58 @@
+# Infraestrutura local da aula. Portas publicadas só em 127.0.0.1; senhas vêm do .env.
+services:
+  postgres:
+    image: pgvector/pgvector:0.8.7-pg18
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD:?defina POSTGRES_SUPERUSER_PASSWORD no .env}
+      POSTGRES_DB: financecorp
+      POSTGRES_MIGRACAO_PASSWORD: ${POSTGRES_MIGRACAO_PASSWORD:?defina POSTGRES_MIGRACAO_PASSWORD no .env}
+      POSTGRES_INGESTAO_PASSWORD: ${POSTGRES_INGESTAO_PASSWORD:?defina POSTGRES_INGESTAO_PASSWORD no .env}
+      POSTGRES_APP_PASSWORD: ${POSTGRES_APP_PASSWORD:?defina POSTGRES_APP_PASSWORD no .env}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - dados-postgres:/var/lib/postgresql
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d financecorp"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  mongo:
+    image: mongo:8.0.34
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:?defina MONGO_USER no .env}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:?defina MONGO_PASSWORD no .env}
+    ports:
+      - "127.0.0.1:27017:27017"
+    volumes:
+      - dados-mongo:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # Interface web para inspecionar o banco (tabelas, migrações, vetores). Credenciais de login vêm do .env.
+  # O servidor pré-cadastrado conecta como agente_leitura (só SELECT): olhar não altera nada.
+  pgadmin:
+    image: dpage/pgadmin4:9.18.0
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:?defina PGADMIN_EMAIL no .env}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:?defina PGADMIN_PASSWORD no .env}
+      PGADMIN_CONFIG_UPGRADE_CHECK_ENABLED: "False"
+    ports:
+      - "127.0.0.1:5050:80"
+    volumes:
+      - dados-pgadmin:/var/lib/pgadmin
+      - ./infra/pgadmin/servers.json:/pgadmin4/servers.json:ro   # importado só na primeira subida
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  dados-postgres:
+  dados-mongo:
+  dados-pgadmin:

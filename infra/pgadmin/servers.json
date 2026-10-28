@@ -1,0 +1,14 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "FinanceCorp (agente_leitura)",
+      "Group": "FinanceCorp",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "financecorp",
+      "Username": "agente_leitura",
+      "SSLMode": "prefer",
+      "Comment": "Papel somente leitura da aplicação. A senha é POSTGRES_APP_PASSWORD do .env e é pedida na primeira conexão; nada de senha neste arquivo."
+    }
+  }
+}

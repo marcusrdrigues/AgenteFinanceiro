@@ -1,0 +1,198 @@
+openapi: 3.1.0
+info:
+  title: AgenteFinanceiro - API REST
+  version: 1.0.0
+  description: >
+    API local (somente localhost, sem autenticação - ver "Restrições da aula" na spec) para
+    perguntas ao assistente financeiro da FinanceCorp. Todos os dados são fictícios.
+servers:
+  - url: http://localhost:8080
+paths:
+  /api/v1/conversas/{conversaId}/perguntas:
+    post:
+      summary: Envia uma pergunta numa conversa (cria a conversa se o identificador for novo)
+      operationId: perguntar
+      parameters:
+        - name: conversaId
+          in: path
+          required: true
+          description: UUID versão 4 gerado pelo cliente (FR-002).
+          schema:
+            type: string
+            format: uuid
+            pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PerguntaRequest'
+      responses:
+        '200':
+          description: Resposta do assistente (inclusive "sem informação", recusas e fallback de risco)
+          headers:
+            X-Trace-Id:
+              schema: { type: string }
+              description: Identificador de rastreamento da requisição (FR-036).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespostaPergunta'
+        '400':
+          description: conversaId fora do formato ou corpo inválido
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problema' }
+        '404':
+          description: Caminho sem conversaId ou rota inexistente (ProblemDetail, sem detalhe interno)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problema' }
+        '413':
+          description: Pergunta acima do tamanho máximo
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problema' }
+        '429':
+          description: Limite de requisições atingido (FR-012)
+          headers:
+            Retry-After: { schema: { type: integer } }
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problema' }
+        '503':
+          description: Provedor do modelo indisponível ou tempo total estourado
+          headers:
+            Retry-After: { schema: { type: integer } }
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problema' }
+        '500':
+          description: Erro inesperado, sem detalhe interno (FR-011)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problema' }
+components:
+  schemas:
+    PerguntaRequest:
+      type: object
+      additionalProperties: false
+      required: [pergunta]
+      properties:
+        pergunta:
+          type: string
+          minLength: 1
+          maxLength: 1000
+    RespostaPergunta:
+      type: object
+      required: [conversaId, tipo, texto, valores, fontes, ausencias]
+      properties:
+        conversaId: { type: string, format: uuid }
+        tipo:
+          type: string
+          enum: [NUMERICA, DOCUMENTAL, MISTA, ANALISE, RISCO_ESPECIALIZADO, FORA_DO_DOMINIO, NAO_INTERPRETADA]
+          description: >
+            Tipo de resposta (TipoResposta). NAO_INTERPRETADA quando a classificação falhou após as
+            novas tentativas (FR-041); não faz parte da lista de classificação.
+        texto:
+          type: string
+          description: Resposta em português do Brasil; valores no formato R$ 1.234,56.
+        periodo:
+          oneOf:
+            - $ref: '#/components/schemas/Periodo'
+            - type: 'null'
+        valores:
+          type: array
+          items: { $ref: '#/components/schemas/ValorMonetario' }
+        fontes:
+          type: array
+          items: { $ref: '#/components/schemas/Fonte' }
+        ausencias:
+          type: array
+          description: Informações que faltaram; vazio quando nada faltou (FR-008).
+          items: { type: string }
+        analise:
+          oneOf:
+            - $ref: '#/components/schemas/AnaliseFinanceira'
+            - type: 'null'
+        avaliacaoRisco:
+          oneOf:
+            - $ref: '#/components/schemas/AvaliacaoRisco'
+            - type: 'null'
+    Periodo:
+      type: object
+      required: [inicio, fim]
+      properties:
+        inicio: { type: string, format: date, example: '2025-01-01' }
+        fim: { type: string, format: date, example: '2025-03-31' }
+    ValorMonetario:
+      type: object
+      required: [rotulo, valor, moeda]
+      properties:
+        rotulo: { type: string, example: receitas }
+        valor:
+          type: string
+          pattern: '^-?\d+\.\d{2}$'
+          example: '150000.00'
+          description: Decimal exato como texto; nunca número de ponto flutuante (FR-005).
+        moeda: { type: string, const: BRL }
+    Fonte:
+      type: object
+      required: [tipo]
+      properties:
+        tipo:
+          type: string
+          enum: [REGISTROS_FINANCEIROS, DOCUMENTO, AGENTE_ESPECIALISTA, REGRAS_INTERNAS]
+        titulo: { type: [string, 'null'] }
+        versao: { type: [string, 'null'] }
+        secao: { type: [string, 'null'] }
+    AnaliseFinanceira:
+      type: object
+      required: [resumo, receitas, despesas, saldo, risco, recomendacoes]
+      properties:
+        resumo: { type: string }
+        receitas: { $ref: '#/components/schemas/ValorMonetario' }
+        despesas: { $ref: '#/components/schemas/ValorMonetario' }
+        saldo: { $ref: '#/components/schemas/ValorMonetario' }
+        risco:
+          type: object
+          required: [nivel, indicadores]
+          properties:
+            nivel: { type: string, enum: [BAIXO, MODERADO, ALTO, INDETERMINADO] }
+            indicadores:
+              type: array
+              items:
+                type: object
+                required: [codigo, descricao, disparado]
+                properties:
+                  codigo: { type: string }
+                  descricao: { type: string }
+                  disparado: { type: boolean }
+        recomendacoes:
+          type: array
+          items:
+            type: object
+            required: [texto, fontes]
+            properties:
+              texto: { type: string }
+              fontes:
+                type: array
+                items: { $ref: '#/components/schemas/Fonte' }
+    AvaliacaoRisco:
+      type: object
+      required: [origem, nivel, justificativa, especialistaDisponivel]
+      properties:
+        origem: { type: string, enum: [AGENTE_ESPECIALISTA, REGRAS_INTERNAS] }
+        nivel: { type: string, enum: [BAIXO, MODERADO, ALTO, INDETERMINADO] }
+        justificativa: { type: string }
+        especialistaDisponivel: { type: boolean }
+    Problema:
+      type: object
+      description: RFC 9457 (ProblemDetail). Nunca contém stack trace, classe, SQL ou valor recebido.
+      required: [type, title, status]
+      properties:
+        type: { type: string, format: uri }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        traceId: { type: string }

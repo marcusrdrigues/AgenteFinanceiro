@@ -1,0 +1,9 @@
+<historico>
+{historico}
+</historico>
+<pergunta>
+{pergunta}
+</pergunta>
+<correcao>
+{correcao}
+</correcao>

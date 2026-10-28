@@ -1,0 +1,6 @@
+# Perfil da carga administrativa de documentos (incremento 2). Único perfil que escreve, e só em
+# "conhecimento"; o papel agente_ingestao não tem acesso a "financeiro".
+spring:
+  datasource:
+    username: agente_ingestao
+    password: ${POSTGRES_INGESTAO_PASSWORD:}

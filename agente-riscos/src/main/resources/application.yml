@@ -1,0 +1,30 @@
+server:
+  port: 8081
+  address: 127.0.0.1                    # só conexões da própria máquina
+
+spring:
+  application:
+    name: agente-riscos
+  # Incremento 6 acrescenta: spring.ai.a2a.server.enabled=true e riscos.a2a.token=${A2A_TOKEN_RISCOS}.
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
+logging:
+  file:
+    name: logs/agente-riscos.log
+  logback:
+    rollingpolicy:
+      max-history: 90                   # FR-038: 90 dias de retenção

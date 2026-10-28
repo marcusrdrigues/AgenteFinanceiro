@@ -1,0 +1,16 @@
+{
+  "esquema": "financecorp.risco.solicitacao/v1",
+  "solicitacaoId": "3f0b8a3e-6a1c-4c7e-9a52-0c8f2d4b9e11",
+  "periodo": { "inicio": "2025-01-01", "fim": "2025-03-31" },
+  "moeda": "BRL",
+  "receitas": "400000.00",
+  "despesas": "320000.00",
+  "resultado": "80000.00",
+  "despesasPorCategoria": {
+    "PESSOAL": "150000.00",
+    "INFRAESTRUTURA": "90000.00",
+    "MARKETING": "50000.00",
+    "IMPOSTOS": "30000.00"
+  },
+  "receitasPeriodoAnterior": "380000.00"
+}

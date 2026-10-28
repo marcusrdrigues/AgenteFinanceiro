@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    <springProperty name="RETENCAO_DIAS" source="logging.logback.rollingpolicy.max-history" defaultValue="90"/>
+
+    <!-- traceId em toda linha; nada de corpo de requisição ou resposta (constituição IX). -->
+    <property name="CONSOLE_LOG_PATTERN" value="%d{ISO8601} %5p [%X{traceId:-}] %logger{36} - %m%n"/>
+    <property name="FILE_LOG_PATTERN" value="%d{ISO8601} %5p [%X{traceId:-}] %logger{36} - %m%n"/>
+    <property name="LOG_FILE" value="${LOG_FILE:-logs/agente-financeiro.log}"/>
+    <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+    <include resource="org/springframework/boot/logging/logback/file-appender.xml"/>
+
+    <!-- Registro de execução (FR-036 a FR-038): uma linha JSON por requisição, só metadados. -->
+    <appender name="EXECUCAO" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/agente-financeiro-execucao.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>logs/agente-financeiro-execucao.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>${RETENCAO_DIAS}</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%m%n</pattern>
+        </encoder>
+    </appender>
+
+    <logger name="execucao" level="INFO" additivity="false">
+        <appender-ref ref="EXECUCAO"/>
+    </logger>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </root>
+</configuration>

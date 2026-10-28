@@ -1,0 +1,11 @@
+{
+  "esquema": "financecorp.risco.parecer/v1",
+  "solicitacaoId": "3f0b8a3e-6a1c-4c7e-9a52-0c8f2d4b9e11",
+  "nivel": "MODERADO",
+  "pontuacao": 1,
+  "achados": [
+    { "codigo": "CONCENTRACAO_DESPESA", "descricao": "PESSOAL representa 46,9% das despesas", "pontos": 1 }
+  ],
+  "justificativa": "Risco moderado: 1 achado. PESSOAL representa 46,9% das despesas.",
+  "avaliadoPor": "agente-riscos/1.0.0"
+}
