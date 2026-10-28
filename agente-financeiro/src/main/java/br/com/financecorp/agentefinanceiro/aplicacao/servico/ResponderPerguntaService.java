@@ -2,9 +2,11 @@ package br.com.financecorp.agentefinanceiro.aplicacao.servico;
 
 import br.com.financecorp.agentefinanceiro.aplicacao.excecao.SaidaModeloInvalidaException;
 import br.com.financecorp.agentefinanceiro.aplicacao.modelo.ClassificacaoPergunta;
+import br.com.financecorp.agentefinanceiro.aplicacao.modelo.Consumo;
 import br.com.financecorp.agentefinanceiro.aplicacao.modelo.RegistroExecucao;
 import br.com.financecorp.agentefinanceiro.aplicacao.modelo.RespostaAssistente;
 import br.com.financecorp.agentefinanceiro.aplicacao.porta.ClassificadorPerguntaPort;
+import br.com.financecorp.agentefinanceiro.aplicacao.porta.ConsumoModeloPort;
 import br.com.financecorp.agentefinanceiro.aplicacao.porta.RegistroExecucaoPort;
 import br.com.financecorp.agentefinanceiro.aplicacao.servico.ConsultarPoliticaService.ResultadoPolitica;
 import br.com.financecorp.agentefinanceiro.aplicacao.validacao.ValidadorClassificacao;
@@ -45,16 +47,18 @@ public final class ResponderPerguntaService {
     private final ValidadorClassificacao validadorClassificacao;
     private final ConsultarPoliticaService politicas;
     private final RegistroExecucaoPort registro;
+    private final ConsumoModeloPort consumo;
     private final Clock relogio;
     private final Parametros parametros;
 
     public ResponderPerguntaService(ClassificadorPerguntaPort classificador,
             ValidadorClassificacao validadorClassificacao, ConsultarPoliticaService politicas,
-            RegistroExecucaoPort registro, Clock relogio, Parametros parametros) {
+            RegistroExecucaoPort registro, ConsumoModeloPort consumo, Clock relogio, Parametros parametros) {
         this.classificador = classificador;
         this.validadorClassificacao = validadorClassificacao;
         this.politicas = politicas;
         this.registro = registro;
+        this.consumo = consumo;
         this.relogio = relogio;
         this.parametros = parametros;
     }
@@ -62,6 +66,7 @@ public final class ResponderPerguntaService {
     public RespostaAssistente responder(String conversaIdTexto, String pergunta, String traceId) {
         Instant inicio = relogio.instant();
         Execucao execucao = new Execucao();
+        consumo.coletarEZerar(); // descarta sobra de uma requisição anterior que terminou fora do fluxo normal
         try {
             ConversaId conversaId = ConversaId.de(conversaIdTexto);
             execucao.conversaId = conversaId.valor();
@@ -78,8 +83,9 @@ public final class ResponderPerguntaService {
             execucao.codigoErro = "erro-interno";
             throw erro;
         } finally {
+            Consumo usado = consumo.coletarEZerar();
             registro.registrar(new RegistroExecucao(traceId, execucao.conversaId, execucao.tipo,
-                    Duration.between(inicio, relogio.instant()).toMillis(), null, null,
+                    Duration.between(inicio, relogio.instant()).toMillis(), usado.tokensEntrada(), usado.tokensSaida(),
                     parametros.versoesPrompt(), execucao.documentos, List.of(), null, null,
                     execucao.resultado, execucao.codigoErro));
         }

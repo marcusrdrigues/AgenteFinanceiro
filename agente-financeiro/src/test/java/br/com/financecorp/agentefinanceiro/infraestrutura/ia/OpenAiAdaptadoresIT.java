@@ -14,6 +14,8 @@ import br.com.financecorp.agentefinanceiro.ContainersTeste;
 import br.com.financecorp.agentefinanceiro.aplicacao.excecao.SaidaModeloInvalidaException;
 import br.com.financecorp.agentefinanceiro.aplicacao.modelo.ClassificacaoBruta;
 import br.com.financecorp.agentefinanceiro.aplicacao.modelo.ContextoMontado;
+import br.com.financecorp.agentefinanceiro.aplicacao.modelo.Consumo;
+import br.com.financecorp.agentefinanceiro.aplicacao.porta.ConsumoModeloPort;
 import br.com.financecorp.agentefinanceiro.aplicacao.modelo.TrechoRotulado;
 import br.com.financecorp.agentefinanceiro.aplicacao.modelo.TrechoDocumento;
 import br.com.financecorp.agentefinanceiro.dominio.excecao.ModeloIndisponivelException;
@@ -53,6 +55,9 @@ class OpenAiAdaptadoresIT {
     @Autowired
     private OpenAiRedatorDocumentalAdapter redator;
 
+    @Autowired
+    private ConsumoModeloPort consumo;
+
     @DynamicPropertySource
     static void propriedades(DynamicPropertyRegistry registro) {
         ContainersTeste.registrarPostgres(registro);
@@ -67,6 +72,7 @@ class OpenAiAdaptadoresIT {
     @BeforeEach
     void limpar() {
         OPENAI.resetAll();
+        consumo.coletarEZerar();
     }
 
     @Test
@@ -79,6 +85,7 @@ class OpenAiAdaptadoresIT {
         assertThat(c.tipo()).isEqualTo("DOCUMENTAL");
         assertThat(c.perguntaAutonoma()).isEqualTo("Qual o limite?");
         OPENAI.verify(1, postRequestedFor(urlPathMatching(".*/chat/completions")));
+        assertThat(consumo.coletarEZerar()).as("tokens vêm do uso informado pela resposta").isEqualTo(new Consumo(10, 5));
     }
 
     @Test

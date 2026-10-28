@@ -12,6 +12,8 @@ import static org.mockito.Mockito.when;
 
 import br.com.financecorp.agentefinanceiro.aplicacao.contexto.MontadorContexto;
 import br.com.financecorp.agentefinanceiro.aplicacao.modelo.ClassificacaoBruta;
+import br.com.financecorp.agentefinanceiro.aplicacao.modelo.Consumo;
+import br.com.financecorp.agentefinanceiro.aplicacao.porta.ConsumoModeloPort;
 import br.com.financecorp.agentefinanceiro.aplicacao.modelo.RegistroExecucao;
 import br.com.financecorp.agentefinanceiro.aplicacao.modelo.RespostaAssistente;
 import br.com.financecorp.agentefinanceiro.aplicacao.modelo.RespostaDocumentalRedigida;
@@ -45,12 +47,13 @@ class ResponderPerguntaServiceTest {
     private final RedatorDocumentalPort redator = mock(RedatorDocumentalPort.class);
     private final List<RegistroExecucao> registros = new ArrayList<>();
     private final RegistroExecucaoPort registro = registros::add;
+    private final ConsumoFalso consumo = new ConsumoFalso();
     private final ResponderPerguntaService servico = servico(Clock.fixed(Instant.EPOCH, ZoneOffset.UTC));
 
     private ResponderPerguntaService servico(Clock relogio) {
         ConsultarPoliticaService politicas = new ConsultarPoliticaService(busca, redator,
                 new MontadorContexto(0.55, 1200, 4800), new ValidadorReferencias(), 2);
-        return new ResponderPerguntaService(classificador, new ValidadorClassificacao(1000), politicas, registro,
+        return new ResponderPerguntaService(classificador, new ValidadorClassificacao(1000), politicas, registro, consumo,
                 relogio, new ResponderPerguntaService.Parametros(2, Duration.ofSeconds(25), 1000,
                         Map.of("classificar", "v1")));
     }
@@ -122,6 +125,42 @@ class ResponderPerguntaServiceTest {
     }
 
     @Test
+    void registroDeveTrazerOConsumoDeTokensDaRequisicao() {
+        classificarComo("FORA_DO_DOMINIO", "Vai chover?");
+        when(classificador.classificar(anyString(), any(), any())).thenAnswer(chamada -> {
+            consumo.somar(500, 40); // o adaptador de IA soma durante a classificação
+            return new ClassificacaoBruta("FORA_DO_DOMINIO", "Vai chover?", "", "", "");
+        });
+
+        servico.responder(CONVERSA, "Vai chover?", "trace-consumo");
+
+        assertThat(registros).singleElement().satisfies(r -> {
+            assertThat(r.tokensEntrada()).isEqualTo(500);
+            assertThat(r.tokensSaida()).isEqualTo(40);
+        });
+    }
+
+    @Test
+    void semChamadaAoModeloOsTokensFicamNulos() {
+        assertThatThrownBy(() -> servico.responder("123", "pergunta", "trace-sem-modelo"))
+                .isInstanceOf(ConversaIdInvalidoException.class);
+        assertThat(registros).singleElement().satisfies(r -> {
+            assertThat(r.tokensEntrada()).isNull();
+            assertThat(r.tokensSaida()).isNull();
+        });
+    }
+
+    @Test
+    void consumoDeUmaRequisicaoNaoVazaParaAProxima() {
+        consumo.somar(999, 999); // sobra de uma requisição anterior que terminou fora do fluxo normal
+        classificarComo("FORA_DO_DOMINIO", "x");
+
+        servico.responder(CONVERSA, "x", "trace-limpo");
+
+        assertThat(registros).singleElement().satisfies(r -> assertThat(r.tokensEntrada()).isNull());
+    }
+
+    @Test
     void erroTambemDeveGerarRegistroComOCodigo() {
         assertThatThrownBy(() -> servico.responder("123", "pergunta", "trace-erro"))
                 .isInstanceOf(ConversaIdInvalidoException.class);
@@ -175,5 +214,25 @@ class ResponderPerguntaServiceTest {
     private void classificarComo(String tipo, String autonoma) {
         when(classificador.classificar(anyString(), any(), any()))
                 .thenReturn(new ClassificacaoBruta(tipo, autonoma, "", "", ""));
+    }
+
+    /** Fake em memória da porta de consumo, no lugar do acumulador por thread da infraestrutura. */
+    static final class ConsumoFalso implements ConsumoModeloPort {
+        private Integer entrada;
+        private Integer saida;
+
+        @Override
+        public void somar(int tokensEntrada, int tokensSaida) {
+            entrada = (entrada == null ? 0 : entrada) + tokensEntrada;
+            saida = (saida == null ? 0 : saida) + tokensSaida;
+        }
+
+        @Override
+        public Consumo coletarEZerar() {
+            Consumo atual = entrada == null ? Consumo.NENHUM : new Consumo(entrada, saida);
+            entrada = null;
+            saida = null;
+            return atual;
+        }
     }
 }

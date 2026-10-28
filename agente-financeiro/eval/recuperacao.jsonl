@@ -8,3 +8,7 @@
 {"id":"R08","pergunta":"Bebida alcoólica é reembolsada?","titulo":"Política de Reembolso de Alimentação","secao":"Bebidas alcoólicas"}
 {"id":"R09","pergunta":"Qual o prazo de pagamento a fornecedores?","titulo":"Política de Pagamento a Fornecedores","secao":"Prazo de pagamento"}
 {"id":"R10","pergunta":"Qual o limite para refeição com cliente?","titulo":"Política de Reembolso de Alimentação","secao":"Refeições com clientes"}
+{"id":"N01","pergunta":"Qual é a política de investimentos da FinanceCorp?","titulo":null,"secao":null}
+{"id":"N02","pergunta":"Qual é a capital da França?","titulo":null,"secao":null}
+{"id":"N03","pergunta":"Como funciona o plano de saúde dos colaboradores?","titulo":null,"secao":null}
+{"id":"N04","pergunta":"Qual a política de trabalho remoto?","titulo":null,"secao":null}

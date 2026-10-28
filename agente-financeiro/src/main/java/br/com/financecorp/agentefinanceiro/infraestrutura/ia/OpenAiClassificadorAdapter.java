@@ -4,6 +4,7 @@ import br.com.financecorp.agentefinanceiro.aplicacao.contexto.Neutralizador;
 import br.com.financecorp.agentefinanceiro.aplicacao.excecao.SaidaModeloInvalidaException;
 import br.com.financecorp.agentefinanceiro.aplicacao.modelo.ClassificacaoBruta;
 import br.com.financecorp.agentefinanceiro.aplicacao.modelo.Turno;
+import br.com.financecorp.agentefinanceiro.aplicacao.porta.ConsumoModeloPort;
 import br.com.financecorp.agentefinanceiro.aplicacao.porta.ClassificadorPerguntaPort;
 import br.com.financecorp.agentefinanceiro.dominio.excecao.ModeloIndisponivelException;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -37,14 +38,16 @@ public final class OpenAiClassificadorAdapter implements ClassificadorPerguntaPo
 
     private final ChatClient cliente;
     private final ExecutorChamadaModelo executor;
+    private final ConsumoModeloPort consumo;
     private final Resource system;
     private final Resource user;
     private final int maximoTokens;
 
-    public OpenAiClassificadorAdapter(ChatClient.Builder construtor, ExecutorChamadaModelo executor,
+    public OpenAiClassificadorAdapter(ChatClient.Builder construtor, ExecutorChamadaModelo executor, ConsumoModeloPort consumo,
             CarregadorPrompts prompts, @Value("${financeiro.ia.tokens-classificador:200}") int maximoTokens) {
         this.cliente = construtor.build();
         this.executor = executor;
+        this.consumo = consumo;
         this.system = prompts.system(PROMPT);
         this.user = prompts.user(PROMPT);
         this.maximoTokens = maximoTokens;
@@ -54,7 +57,7 @@ public final class OpenAiClassificadorAdapter implements ClassificadorPerguntaPo
     public ClassificacaoBruta classificar(String pergunta, List<Turno> historico, Optional<String> correcao) {
         ClassificacaoModelo saida;
         try {
-            saida = executor.executar(() -> cliente.prompt()
+            var resposta = executor.executar(() -> cliente.prompt()
                     .system(system)
                     .user(u -> u.text(user)
                             .param("historico", historico(historico))
@@ -63,7 +66,9 @@ public final class OpenAiClassificadorAdapter implements ClassificadorPerguntaPo
                     .options(OpenAiChatOptions.builder().maxCompletionTokens(maximoTokens))
                     .advisors(AdvisorParams.ENABLE_NATIVE_STRUCTURED_OUTPUT)
                     .call()
-                    .entity(ClassificacaoModelo.class));
+                    .responseEntity(ClassificacaoModelo.class));
+            UsoModelo.registrar(consumo, resposta.response());
+            saida = resposta.entity();
         } catch (ModeloIndisponivelException indisponivel) {
             throw indisponivel;
         } catch (RuntimeException conversao) {

@@ -1,0 +1,14 @@
+{"id":"C01","pergunta":"Qual o limite diário de hospedagem?","tipo":"DOCUMENTAL"}
+{"id":"C02","pergunta":"Qual é o bônus anual da diretoria?","tipo":"DOCUMENTAL"}
+{"id":"C03","pergunta":"Quanto a diretoria recebe de bônus por ano?","tipo":"DOCUMENTAL"}
+{"id":"C04","pergunta":"Quem aprova uma despesa de R$ 15.000,00?","tipo":"DOCUMENTAL"}
+{"id":"C05","pergunta":"Em quantos dias preciso pedir o reembolso?","tipo":"DOCUMENTAL"}
+{"id":"C06","pergunta":"Quanto posso gastar por pessoa em uma refeição com cliente?","tipo":"DOCUMENTAL"}
+{"id":"C07","pergunta":"Qual foi a receita de março de 2025?","tipo":"NUMERICA"}
+{"id":"C08","pergunta":"Quanto gastamos com marketing no primeiro trimestre de 2025?","tipo":"NUMERICA"}
+{"id":"C09","pergunta":"Qual foi o saldo de 2025?","tipo":"NUMERICA"}
+{"id":"C10","pergunta":"Qual o limite de reembolso de viagens e quanto gastamos com viagens em março de 2025?","tipo":"MISTA"}
+{"id":"C11","pergunta":"Faça uma análise financeira do primeiro trimestre de 2025.","tipo":"ANALISE"}
+{"id":"C12","pergunta":"Peça ao especialista uma avaliação de risco do primeiro trimestre de 2025.","tipo":"RISCO_ESPECIALIZADO"}
+{"id":"C13","pergunta":"Qual é a capital da França?","tipo":"FORA_DO_DOMINIO"}
+{"id":"C14","pergunta":"Vai chover amanhã no Rio de Janeiro?","tipo":"FORA_DO_DOMINIO"}

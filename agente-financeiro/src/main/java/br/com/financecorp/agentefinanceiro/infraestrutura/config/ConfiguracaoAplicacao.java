@@ -4,6 +4,7 @@ import br.com.financecorp.agentefinanceiro.aplicacao.contexto.DivisorTexto;
 import br.com.financecorp.agentefinanceiro.aplicacao.contexto.MontadorContexto;
 import br.com.financecorp.agentefinanceiro.aplicacao.porta.BuscaDocumentoPort;
 import br.com.financecorp.agentefinanceiro.aplicacao.porta.ClassificadorPerguntaPort;
+import br.com.financecorp.agentefinanceiro.aplicacao.porta.ConsumoModeloPort;
 import br.com.financecorp.agentefinanceiro.aplicacao.porta.GravacaoTrechosPort;
 import br.com.financecorp.agentefinanceiro.aplicacao.porta.RedatorDocumentalPort;
 import br.com.financecorp.agentefinanceiro.aplicacao.porta.RegistroExecucaoPort;
@@ -45,10 +46,11 @@ public class ConfiguracaoAplicacao {
 
     @Bean
     ResponderPerguntaService responderPerguntaService(ClassificadorPerguntaPort classificador,
-            ConsultarPoliticaService politicas, RegistroExecucaoPort registro, Clock relogio, PropriedadesIa ia,
+            ConsultarPoliticaService politicas, RegistroExecucaoPort registro, ConsumoModeloPort consumo, Clock relogio,
+            PropriedadesIa ia,
             PropriedadesLimites limites) {
         return new ResponderPerguntaService(classificador,
-                new ValidadorClassificacao(limites.tamanhoMaximoPergunta()), politicas, registro, relogio,
+                new ValidadorClassificacao(limites.tamanhoMaximoPergunta()), politicas, registro, consumo, relogio,
                 new ResponderPerguntaService.Parametros(ia.tentativasValidacao(), ia.tempoTotal(),
                         limites.tamanhoMaximoPergunta(), ia.versaoPrompts()));
     }

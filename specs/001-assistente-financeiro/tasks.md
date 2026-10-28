@@ -161,18 +161,18 @@ resposta, sobre documento não autorizado e com injeção retornam o esperado (s
 - [X] T063 [US01] Criar `[AF]/interfaces/web/PerguntaController.java` (`POST /api/v1/conversas/{conversaId}/perguntas`), DTOs records `[AF]/interfaces/web/dto/PerguntaRequest.java` (`@NotBlank`, `@Size(max = 1000)`, rejeitar propriedades desconhecidas) e `RespostaPerguntaDto.java` (+ `ValorMonetarioDto`, `FonteDto`, `PeriodoDto`) espelhando o OpenAPI; `[AF]/interfaces/web/FiltroLimiteRequisicoes.java` com Resilience4j `RateLimiter` (20/min por `conversaId`, 60/min no total), sem depender de `infraestrutura`; até T040 passar.
 - [X] T064 [P] [US01] Criar casos de eval versionados: `agente-financeiro/eval/recuperacao.jsonl` (≥ 8 casos: pergunta → documento e seção esperados no top-4), `agente-financeiro/eval/resposta-documental.jsonl` (≥ 6: cenários 1, 2, 3, 4 e 6 de US01, com critério verificável por código: fonte esperada, mensagem fixa, ausência de conteúdo do documento não autorizado).
 - [X] T065 [US01] Criar `[AFT]/eval/RecuperacaoEvalIT.java` e `[AFT]/eval/RespostaDocumentalEvalIT.java` (`@Tag("eval")`, modelo real, grava `agente-financeiro/eval/resultados/<data>-<modelo>-documental.md` com notas, versão do prompt e parâmetros).
-- [ ] T066 [US01] Rodar `./mvnw -pl agente-financeiro verify -Peval`; calibrar `limiarSimilaridade` e `topK` até recuperação ≥ 90% (SC-003) e recusa 100% (SC-002); registrar valores finais e motivo em `docs/incremento-02-rag.md`.
+- [X] T066 [US01] Rodar `./mvnw -pl agente-financeiro verify -Peval`; calibrar `limiarSimilaridade` e `topK` até recuperação ≥ 90% (SC-003) e recusa 100% (SC-002); registrar valores finais e motivo em `docs/incremento-02-rag.md`.
 
 **Checkpoint (incremento 2)**: `./mvnw verify` verde; quickstart cenários 4, 5 e 11 funcionam com modelo real; eval documental na nota mínima.
 
 > **Notas de implementação do incremento 2 (2026-10-27)** — detalhes em `docs/incremento-02-rag.md`:
-> - **T066 em aberto**: o eval com modelo real exige `OPENAI_API_KEY` e `OPENAI_CHAT_MODEL`; os casos (T064) e o executor (T065) estão prontos, mas não foram rodados. O checkpoint "eval documental na nota mínima" segue pendente.
+> - **T066 concluída (2026-10-28)** com `gpt-6-luna`: recuperação 100% (positivos e negativos), classificação 100%, resposta documental 100% (recusa e adversariais incluídos). Limiar 0,55 e top-k 4 mantidos (menor positivo 0,588, maior negativo 0,506). Acrescentados fora da lista original: `eval/classificacao.jsonl` + `ClassificacaoEvalIT`, casos negativos de recuperação e o prompt `classificar` **v2** (o v1 dava 86%: valor definido por política caía em NUMERICA). Detalhes e a correção de uma medição errada de latência em `docs/incremento-02-rag.md`.
 > - `spring-ai-retry` não existe no classpath da 2.0.2: `TradutorExcecoesIa` trata `com.openai.errors.*` (T044, T059).
 > - Limite de tokens por `maxCompletionTokens` (os modelos atuais recusam `max_tokens`) (T060).
 > - 413 aplicado no caso de uso; o DTO só exige o campo (`@NotNull`) (T040, T063).
 > - `Turno` e o parâmetro de histórico da porta do classificador já nasceram aqui (adiantam parte da T069), para a porta não mudar no incremento 3.
 > - `politica-fornecedores-v1.md` tem `revisaoHumana: aprovada` para o cenário 4 ser exercitável; documento em `ERRO_PROCESSAMENTO` ou `EM_REVISAO` é reprocessado na carga seguinte (defeito achado na revisão, com teste).
-> - `tokensEntrada`/`tokensSaida` do `RegistroExecucao` ainda saem nulos (pendência registrada).
+> - `tokensEntrada`/`tokensSaida` do `RegistroExecucao` agora são preenchidos (`ConsumoModeloPort`; ver `docs/incremento-02-rag.md`).
 > - **Acréscimos pedidos pelo usuário, fora da lista original**: Swagger (springdoc 3.2.0) nos dois agentes, com alinhamento de `swagger-annotations` em 2.2.55; pgAdmin 9.18.0 no Compose (`127.0.0.1:5050`, credenciais no `.env`, servidor pré-cadastrado como `agente_leitura`).
 
 ---

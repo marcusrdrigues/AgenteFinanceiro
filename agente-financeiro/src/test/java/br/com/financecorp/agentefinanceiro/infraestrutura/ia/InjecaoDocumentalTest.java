@@ -35,7 +35,7 @@ class InjecaoDocumentalTest {
     private final PropriedadesIa propriedades = new PropriedadesIa(2, 0, Duration.ofMillis(1), 2,
             Duration.ofSeconds(25), Duration.ofSeconds(30), Map.of("responder-documental", "v1"));
     private final OpenAiRedatorDocumentalAdapter redator = new OpenAiRedatorDocumentalAdapter(
-            ChatClient.builder(modeloFalso), new ExecutorChamadaModelo(new TradutorExcecoesIa(), propriedades),
+            ChatClient.builder(modeloFalso), new ExecutorChamadaModelo(new TradutorExcecoesIa(), propriedades), new ConsumoModeloPorThread(),
             new CarregadorPrompts(new DefaultResourceLoader(), propriedades), 600);
 
     @Test

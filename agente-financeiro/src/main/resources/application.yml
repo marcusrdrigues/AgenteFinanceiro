@@ -89,7 +89,7 @@ financeiro:
     tokens-classificador: 200           # teto de custo: a classificação é um JSON curto
     tokens-redacao: 600                 # teto de custo por resposta redigida
     versao-prompts:
-      classificar: v1
+      classificar: v2                   # v2: valor definido por política é DOCUMENTAL (eval de classificação); v1 segue no repositório para reverter
       responder-documental: v1
   rag:
     top-k: 4                            # inicial; calibrado pelo eval de recuperação (research D6)

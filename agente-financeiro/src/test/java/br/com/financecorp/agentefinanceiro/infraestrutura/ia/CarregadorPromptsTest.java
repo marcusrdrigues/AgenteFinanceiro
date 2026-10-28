@@ -38,7 +38,7 @@ class CarregadorPromptsTest {
     @Test
     void promptsNaoDevemTerChavesForaDasVariaveis() throws Exception {
         // O renderizador do Spring AI trata { } como variável: uma chave solta quebra a renderização.
-        for (String arquivo : new String[] {"classificar.system.v1.st", "responder-documental.system.v1.st"}) {
+        for (String arquivo : new String[] {"classificar.system.v1.st", "classificar.system.v2.st", "responder-documental.system.v1.st"}) {
             String texto = new DefaultResourceLoader().getResource("classpath:prompts/" + arquivo)
                     .getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
             assertThat(texto).doesNotContain("{").doesNotContain("}");

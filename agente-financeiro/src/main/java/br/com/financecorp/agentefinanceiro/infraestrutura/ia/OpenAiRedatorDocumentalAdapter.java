@@ -4,6 +4,7 @@ import br.com.financecorp.agentefinanceiro.aplicacao.contexto.Neutralizador;
 import br.com.financecorp.agentefinanceiro.aplicacao.excecao.SaidaModeloInvalidaException;
 import br.com.financecorp.agentefinanceiro.aplicacao.modelo.ContextoMontado;
 import br.com.financecorp.agentefinanceiro.aplicacao.modelo.RespostaDocumentalRedigida;
+import br.com.financecorp.agentefinanceiro.aplicacao.porta.ConsumoModeloPort;
 import br.com.financecorp.agentefinanceiro.aplicacao.porta.RedatorDocumentalPort;
 import br.com.financecorp.agentefinanceiro.dominio.excecao.ModeloIndisponivelException;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -34,14 +35,16 @@ public final class OpenAiRedatorDocumentalAdapter implements RedatorDocumentalPo
 
     private final ChatClient cliente;
     private final ExecutorChamadaModelo executor;
+    private final ConsumoModeloPort consumo;
     private final Resource system;
     private final Resource user;
     private final int maximoTokens;
 
-    public OpenAiRedatorDocumentalAdapter(ChatClient.Builder construtor, ExecutorChamadaModelo executor,
+    public OpenAiRedatorDocumentalAdapter(ChatClient.Builder construtor, ExecutorChamadaModelo executor, ConsumoModeloPort consumo,
             CarregadorPrompts prompts, @Value("${financeiro.ia.tokens-redacao:600}") int maximoTokens) {
         this.cliente = construtor.build();
         this.executor = executor;
+        this.consumo = consumo;
         this.system = prompts.system(PROMPT);
         this.user = prompts.user(PROMPT);
         this.maximoTokens = maximoTokens;
@@ -51,7 +54,7 @@ public final class OpenAiRedatorDocumentalAdapter implements RedatorDocumentalPo
     public RespostaDocumentalRedigida redigir(String pergunta, ContextoMontado contexto, Optional<String> correcao) {
         RespostaDocumentalModelo saida;
         try {
-            saida = executor.executar(() -> cliente.prompt()
+            var resposta = executor.executar(() -> cliente.prompt()
                     .system(system)
                     .user(u -> u.text(user)
                             // O bloco já vem neutralizado do MontadorContexto; entra como um único parâmetro.
@@ -61,7 +64,9 @@ public final class OpenAiRedatorDocumentalAdapter implements RedatorDocumentalPo
                     .options(OpenAiChatOptions.builder().maxCompletionTokens(maximoTokens))
                     .advisors(AdvisorParams.ENABLE_NATIVE_STRUCTURED_OUTPUT)
                     .call()
-                    .entity(RespostaDocumentalModelo.class));
+                    .responseEntity(RespostaDocumentalModelo.class));
+            UsoModelo.registrar(consumo, resposta.response());
+            saida = resposta.entity();
         } catch (ModeloIndisponivelException indisponivel) {
             throw indisponivel;
         } catch (RuntimeException conversao) {
