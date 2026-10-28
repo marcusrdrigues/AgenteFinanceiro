@@ -57,6 +57,22 @@ real: isso é o T066.
 | Jars contra o Compose | Os dois sobem; Flyway aplicou a V2; `/v3/api-docs` e Swagger UI respondem 200 nos dois; pergunta com chave falsa → 503 ProblemDetail com `Retry-After` e registro de execução com o mesmo `traceId`. |
 | pgAdmin | `127.0.0.1:5050`, login com as credenciais do `.env` conferido (senha errada volta ao login); servidor "FinanceCorp (agente_leitura)" importado. |
 
+## Andamento do eval com modelo real (2026-10-28)
+
+- **Modelo de chat decidido**: `gpt-6-luna` com `reasoning-effort: none`
+  ([decisoes/0002-modelo-chat.md](decisoes/0002-modelo-chat.md)).
+- **Recuperação: 100%** (10/10, trecho certo em 1º lugar; similaridade de 0,588 a 0,743) —
+  `agente-financeiro/eval/resultados/2026-10-28-text-embedding-3-small-recuperacao.md`. O caso de
+  menor similaridade (R07, 0,588) está perto do limiar 0,55: não baixar o limiar sem medir também os
+  casos que devem recusar.
+- **Resposta documental: abortou** com `ModeloIndisponivelException` lançada por `verificarPrazo`:
+  o orçamento de 25 s da requisição estourou, sem nenhuma nova tentativa registrada. Uma chamada
+  isolada do classificador com o prompt real, medida direto na API, passou de 60 s. **Próximo
+  passo**: medir de novo a latência (primeira chamada × chamadas seguintes, com e sem schema
+  estrito) e decidir entre ajustar `spring.ai.openai.timeout` e `financeiro.ia.tempo-total` ou
+  investigar a causa da lentidão. Comando do eval:
+  `OPENAI_CHAT_MODEL=gpt-6-luna ./mvnw -pl agente-financeiro verify -Peval`.
+
 ## Pendências
 
 - **T066 — eval com modelo real**: `./mvnw -pl agente-financeiro verify -Peval` com

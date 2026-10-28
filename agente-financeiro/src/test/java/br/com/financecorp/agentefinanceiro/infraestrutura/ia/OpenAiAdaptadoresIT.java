@@ -137,6 +137,7 @@ class OpenAiAdaptadoresIT {
         String corpo = OPENAI.getAllServeEvents().getFirst().getRequest().getBodyAsString();
         assertThat(corpo).doesNotContain("\"tools\"").doesNotContain("chave-falsa-de-teste");
         assertThat(corpo).contains("max_completion_tokens");
+        assertThat(corpo.replace(" ", "")).contains("\"reasoning_effort\":\"none\"");
     }
 
     private static void responder(int status, String corpo) {

@@ -37,6 +37,10 @@ spring:
       chat:
         model: ${OPENAI_CHAT_MODEL:}    # identificador escolhido pelo eval; sem padrão no código (research D9)
         temperature: 0.0                # fidelidade aos números e trechos, sem criatividade
+        # gpt-6-luna é modelo de raciocínio (padrão "medium"): os tokens de raciocínio saem do mesmo teto
+        # de max-completion-tokens e podem esvaziar a resposta. "none" também é exigido para tool calling
+        # pelo Chat Completions (docs do modelo, conferido em 2026-10-28; docs/decisoes/0002-modelo-chat.md).
+        reasoning-effort: none
       embedding:
         model: ${OPENAI_EMBEDDING_MODEL:text-embedding-3-small}
         dimensions: 1536                # igual à coluna vector(1536); mudar exige reindexar
